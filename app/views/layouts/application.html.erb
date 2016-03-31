@@ -1,14 +1,185 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>TestingP</title>
-  <%= stylesheet_link_tag    'application', media: 'all', 'data-turbolinks-track' => true %>
-  <%= javascript_include_tag 'application', 'data-turbolinks-track' => true %>
-  <%= csrf_meta_tags %>
-</head>
-<body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+  xmlns:og="http://opengraphprotocol.org/schema/"
+  xmlns:fb="http://www.facebook.com/2008/fbml"
+  xml:lang="<%= I18n.locale %>" lang="<%= I18n.locale %>">
+  <head>
+    <%= csrf_meta_tag %>
+    <%= yield_or_default :meta do %>
+      <title><%= t '.html_title'%></title>
+      <meta name="description" content="<%= t '.meta_desc'%>" />
+      <meta name="keywords" content="<%= t '.meta_key'%>"/>
+    <% end -%>
+    <%= canonical_tag -%>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="P3Pv1" href="/w3c/p3p.xml" />
+    <%= tag :link, rel: 'icon', href: asset_path("favicon.ico") %>
+    <%= tag :link, rel: 'icon', href: asset_path("favicon.png") %>
+    <%= tag :link, rel: 'icon', href: asset_path("favicon.gif") %>
+    <%= tag :link, rel: 'apple-touch-icon', href: asset_path("custom_icon.png") %>
 
-<%= yield %>
+    <!-- Google Webmaster Verification Code  /  Yahoo Site-Explorer Verification Code -->
+    <meta name="verify-v1" content="th8rPc2aUHslqSnd4i+ypX+h1PoAU8gHDDwO2D/II6w=" />
+    <meta name="msvalidate.01" content="B799588C08FA80318CF176DA9C1E5D18" />
 
-</body>
+    <%if @section.slug == 'default'%>
+      <%= auto_discovery_link_tag(:rss, {:controller => 'general',:action => 'rss'}, {:title => t('.rss_latest_stories'), :rel => 'alternate'}) %>
+    <%elsif @section.visible %>
+      <!-- RSS - If we're in section pages show the sections url -->
+      <% if @section.id %> <link href="<%=rss_section_url(@section)%>" rel="alternate" title="RSS feed Kidzworld.com <%=@section.slug.capitalize%>"  type="application/rss+xml" /><% end %>
+    <%end%>
+
+    <%= tag :meta, :property => 'og:site_name', :content => 'Kidzworld' %>
+    <%= tag :meta, :property => 'fb:app_id',    :content => '161217043909097' %>
+
+    <%= stylesheet_link_tag "application", :media => "all" %>
+
+    <!--[if lte IE 9]><%= stylesheet_link_tag 'ie_lte9' %><![endif]-->
+
+    <%= yield :before_js %>
+
+    <%= javascript_include_tag "base" %>
+
+    <%= render 'layouts/current_user_js' %>
+    
+    <% if signed_in? && current_user.private_avatar && !current_user.private_avatar.approved? %>
+      <script type="text/javascript">
+        jQuery(document).ready(function($) {
+          replace_avatars(<%= current_user.id %>, "<%= current_user.private_avatar.avatar_path %>");
+        });
+      </script>
+    <% end %>
+    <script src="http://tags.evolvemediallc.com/websites/evolve_tags/14544"></script>
+    <%= yield :head %>
+  </head>
+  <body <%= "data-current-user=\"#{current_user.slug}\" data-is-moderator=\"#{current_user.is_moderator?}\"" if signed_in?%> <%= "data-in-penalty='true'" if signed_in? && current_user.in_penalty_box? %> <%= "data-in-pm-penalty='true'" if signed_in? && current_user.banned_from_pm?%> <%= "data-controller='#{controller.controller_name}'"%> <%= "data-action='#{controller.action_name}'"%>>
+    <!-- Start Google Tag Manager -->
+    <%= render 'layouts/ga' -%>
+
+    <%= render 'friends/recommended_friends_popup' %>
+    <a href="#" class="recommend-friends-popup" style="display: none"></a>
+    <% if @recommended_popup %>
+      <% @recommended_popup = false %>
+      <script type"text/javascript">
+        jQuery(document).ready(function($) {
+          jQuery(".recommend-friends-popup").click();
+        })
+      </script>
+    <% end %>
+
+    <%= yield :feeligo %>
+    <%= yield :after_body%>
+    <div class="background-overlay"></div>
+
+    <div class="container_16" id="full-container">
+      <!-- HEADER -->
+      <%=render 'layouts/header' -%>
+      <!-- Center Column -->
+      <div class="grid_10" id="grid_10">
+        <%=yield :outside_main_content%>
+        <%= content_tag :div,
+          id:"main-content",
+          class: ["clearfix", controller_name] do %>
+          <%= content_for?(:maincolumn_all) ? yield(:maincolumn_all) : yield %>
+          <!-- Center column leftside (half main column width) -->
+          <div class="grid_4 alpha omega bg_ColorB">
+            <div class="leftside">
+              <%=yield :maincolumn_left%>
+            </div>
+          </div>
+          <!-- Center column rightside (half Main column width) -->
+          <div class="grid_6 alpha omega bg_ColorB">
+            <div class="centercol bg_ColorB">
+              <%=yield :maincolumn_right%>
+            </div>
+          </div>
+
+          <%=yield :main_content_bottom%>
+          <div class="clear"></div>
+        <% end %><!-- /main-content -->
+      </div>
+
+      <!-- Skyscraper -->
+      <div class="grid_6">
+        <% if content_for?(:skyscraper_topper) %>
+          <%= yield :skyscraper_topper %>
+        <% end %>
+        <div id="asidescraper" class="aside">
+          <% unless signed_in? %>
+            <div id="sky-cta">
+              <% cache 'rhs_callout', expires_in: 12.hours do %>
+                <%= render 'layouts/callout' %>
+              <% end %>
+            </div>
+          <% end %>
+          <div id="skyAd">
+            <div class="section">
+              <% if content_for?(:top_ad) %>
+                <%= yield :top_ad %>
+              <% else %>
+                <%= ad_div 'ros_8103' %>
+              <% end %>
+            </div>
+          </div>
+          <% if content_for?(:skyscraper) %>
+            <%= yield :skyscraper %>
+            <% else %>
+              <%= yield :skyscraper_extra if content_for?(:skyscraper_extra)%>
+              <%= render 'skyscraper_boxes/logged_in_boxes' %>
+              <%= render 'skyscraper_boxes/online' %>
+              <%= render 'chat/small_chat_info' %>
+          <% end %>
+        </div>
+      </div>
+      <!-- pre footer for ads -->
+        <!-- Required ad div -->
+        <% if content_for? :reskin_ad %>
+          <%= yield :reskin_ad %>
+        <% else %>
+          <div id="adoop"></div>
+          <div id="ros_adoop"></div>
+        <% end %>
+      <!-- FOOTER -->
+      <div style="clear:both;"></div>
+      <%= render "layouts/footer" %>
+      <div id="evolve_footer"></div>
+
+      <!-- Possibly remove this, used in archive/index -->
+      <%= yield :bottom if content_for?(:bottom)%>
+      <%= yield :footer if content_for?(:footer)%>
+    </div><!-- /CONTAINER -->
+    <%if signed_in?%>
+      <% cache ["user_announcements", current_user.id].join ":" do %>
+        <%=render 'announcements/announcements'%>
+      <% end %>
+      <% cache ["user_newsletter_nag", current_user.id].join ":" do %>
+        <% if current_user.email_opt_out.newsletter %>
+          <script type="text/javascript">
+            jQuery(document).ready(function($) {
+              var popup = new NewsletterPopup();
+            });
+          </script>
+        <% end %>
+      <% end %>
+    <% elsif !current_page?('/register') && !current_page?('/login') %>
+      <script type="text/javascript">
+        jQuery(document).ready(function($) {
+          // kw register pop up unit
+          var popup = new RegisterPopup();
+          // kw member preview box
+          var mp = new MemberPreview();
+        });
+      </script>
+    <% end %>
+
+    <script type="text/javascript">
+      jQuery(document).ready(function() {
+        jQuery('#notice, #alert').each(function(index, el){
+            jQuery(el).fadeOut(3000);
+        });
+      });
+    </script>
+    <%= render 'layouts/inglide' %>
+  </body>
 </html>
